@@ -30,7 +30,8 @@ data = {
     "speed": np.random.normal(60, 5, time_steps),
     "gear": np.random.randint(1, 6, time_steps),
     "brake": np.random.choice([0, 1], time_steps, p=[0.9, 0.1]),
-    "coolant_temp": np.random.normal(190, 5, time_steps)
+    "coolant_temp": np.random.normal(190, 5, time_steps),
+    "throttle_pos": np.random.uniform(0, 100, time_steps)
 }
 
 df = pd.DataFrame(data)
@@ -50,7 +51,7 @@ df = pd.DataFrame(data)
 ## 3. Normalize Features
 
 ```python
-features = ["rpm", "speed", "gear", "brake", "coolant_temp"]
+features = ["rpm", "speed", "gear", "brake", "coolant_temp", "throttle_pos"]
 normalized = (df[features] - df[features].mean()) / df[features].std()
 ```
 
@@ -67,7 +68,7 @@ position_embedding_layer = nn.Embedding(T, D)
 position_embeddings = position_embedding_layer(position_ids.squeeze())
 ```
 
-* `T` is the number of time steps (100) and `D` is the number of features (5).
+* `T` is the number of time steps (100) and `D` is the number of features (6).
 * `torch.arange(T)` creates a tensor `[0, 1, 2, ..., 99]`. `unsqueeze(1)` changes its shape from `(T,)` to `(T, 1)` so each index stands alone.
 * `nn.Embedding(T, D)` creates a learnable table of `T` rows and `D` columns. Each row provides a D‑dimensional vector that represents a specific time step.
 * Calling `position_embedding_layer(position_ids.squeeze())` looks up each index and returns a tensor of shape `(T, D)` containing positional vectors. These embeddings let the model know the order of the sequence since a Transformer has no inherent sense of time.
@@ -79,7 +80,7 @@ inputs = torch.tensor(normalized.values, dtype=torch.float32)  # (T, D)
 transformer_input = inputs + position_embeddings  # (T, D)
 ```
 
-* `normalized.values` gives us the underlying NumPy array of the DataFrame. Converting it to a float tensor yields shape `(100, 5)`.
+* `normalized.values` gives us the underlying NumPy array of the DataFrame. Converting it to a float tensor yields shape `(100, 6)`.
 * Adding the positional embeddings elementwise combines feature information with timing information. The resulting tensor `transformer_input` is what we feed into the model.
 
 ## 6. Visualize a Sample
@@ -97,7 +98,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-* The shape printout confirms the dimensions of `(100, 5)`.
+* The shape printout confirms the dimensions of `(100, 6)`.
 * The first five rows offer a glimpse at the combined numeric and positional information.
 * The plot of RPM and speed over time provides intuition for the simulated data—useful for verifying that the signals look plausible.
 
@@ -151,7 +152,7 @@ df["anomaly_score"] = anomaly_scores
 
 * `model.eval()` sets layers like dropout or batch norm (not used here, but good practice) to evaluation mode.
 * `torch.no_grad()` ensures gradients are not tracked, reducing memory usage during inference.
-* The model processes the sequence and outputs another `(100, 5)` tensor named `reconstructed`.
+* The model processes the sequence and outputs another `(100, 6)` tensor named `reconstructed`.
 * The mean squared error between the reconstructed tensor and the input is computed for each time step. High values mean the model struggled to recreate that point and could indicate an anomaly.
 * The resulting score is stored back into the DataFrame under a new column `anomaly_score` for later inspection or plotting.
 
